@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>100 Prisoners — 8-bit Sim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & BASE ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{background:#0a0a2e}
+body{
+  background:#0a0a2e;
+  color:#e8e0c8;
+  font-family:'Press Start 2P','Courier New',Courier,monospace;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  padding:16px;
+}
+
+/* ===== MAIN WRAPPER ===== */
+.app{
+  background:#181848;
+  border:4px solid #4848a0;
+  padding:20px 24px 24px;
+  max-width:960px;
+  width:100%;
+  box-shadow:
+    0 0 0 2px #0a0a2e,
+    0 0 0 6px #282870;
+}
+
+/* ===== TITLE ===== */
+.title{
+  text-align:center;
+  font-size:28px;
+  letter-spacing:2px;
+  color:#ffd700;
+  text-shadow:
+    3px 0 #8b6914,0 3px #8b6914,-3px 0 #8b6914,0 -3px #8b6914,
+    2px 2px #8b6914;
+  margin-bottom:6px;
+}
+.subtitle{
+  text-align:center;
+  font-size:10px;
+  color:#8888cc;
+  margin-bottom:12px;
+}
+
+/* ===== CONFIG BAR ===== */
+.config-bar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:14px;
+  padding:10px;
+  background:#101038;
+  border:2px solid #383878;
+}
+.config-bar label{
+  font-size:9px;
+  color:#aaaadd;
+}
+.config-bar select,.config-bar input{
+  background:#202060;
+  color:#e8e0c8;
+  border:2px solid #4848a0;
+  font-family:inherit;
+  font-size:9px;
+  padding:4px 8px;
+  outline:none;
+  cursor:pointer;
+}
+.config-bar select:focus,.config-bar input:focus{
+  border-color:#ffd700;
+}
+.seed-input{width:90px;}
+
+/* ===== BUTTONS ===== */
+.btn{
+  background:#282870;
+  color:#e8e0c8;
+  border:2px solid #4848a0;
+  font-family:inherit;
+  font-size:10px;
+  padding:6px 16px;
+  cursor:pointer;
+  text-transform:uppercase;
+  transition:background .1s, border-color .1s;
+  line-height:1.4;
+}
+.btn:hover{background:#3838a0;border-color:#6868c0;}
+.btn:active{background:#4848b0;transform:translateY(1px);}
+.btn.primary{
+  background:#006a00;
+  border-color:#00aa00;
+  color:#a0ffa0;
+}
+.btn.primary:hover{background:#008a00;}
+.btn.danger{
+  background:#6a0000;
+  border-color:#aa0000;
+  color:#ff9090;
+}
+.btn.danger:hover{background:#8a0000;}
+.btn.warning{
+  background:#6a5a00;
+  border-color:#aa8a00;
+  color:#ffdd90;
+}
+.btn.warning:hover{background:#8a7a00;}
+.btn:disabled{
+  opacity:.4;
+  pointer-events:none;
+  transform:none;
+}
+.btn-sm{font-size:8px;padding:5px 10px;line-height:1.4;}
+
+/* ===== CONTROL BAR ===== */
+.control-bar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:14px;
+}
+.control-bar .speed-group{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-left:auto;
+}
+.control-bar .speed-group label{font-size:8px;color:#8888cc;}
+.control-bar input[type=range]{
+  -webkit-appearance:none;
+  appearance:none;
+  width:100px;
+  height:8px;
+  background:#202060;
+  border:2px solid #4848a0;
+  outline:none;
+}
+.control-bar input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+  width:14px;
+  height:18px;
+  background:#ffd700;
+  border:2px solid #8b6914;
+  cursor:pointer;
+}
+.control-bar input[type=range]::-moz-range-thumb{
+  width:14px;height:18px;
+  background:#ffd700;
+  border:2px solid #8b6914;
+  cursor:pointer;
+}
+
+/* ===== GRID ===== */
+.grid-wrapper{
+  position:relative;
+  margin-bottom:12px;
+  padding:8px;
+  background:#101038;
+  border:2px solid #383878;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:4px;
+  aspect-ratio:1/1;
+  max-width:560px;
+  margin:0 auto;
+}
+.box{
+  position:relative;
+  background:#6b4423;
+  border:3px solid #4a2e15;
+  border-radius: 0;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:9px;
+  color:#e8d8b0;
+  transition: background .15s, transform .1s, border-color .15s, box-shadow .15s;
+  aspect-ratio:1/1;
+  user-select:none;
+  image-rendering:pixelated;
+  box-shadow:
+    inset 0 -3px 0 #3a1e0a,
+    inset 0 3px 0 #8a6a3a,
+    inset -3px 0 0 #5a3a1a,
+    inset 3px 0 0 #7a5a2a;
+}
+.box::before{
+  content:'';
+  position:absolute;
+  top:-1px;left:-1px;right:-1px;bottom:-1px;
+  border:2px solid transparent;
+  pointer-events:none;
+}
+.box .box-label{
+  position:absolute;
+  top:2px;left:3px;
+  font-size:7px;
+  color:#b8a080;
+  line-height:1;
+}
+
+/* Номер ВНУТРИ ящика */
+.box .box-inner{
+  display:none;
+  font-size:16px;
+  color:#ffd700;
+  text-shadow:2px 2px #8b6914;
+  z-index:2;
+  line-height:1;
+}
+
+/* OPEN state */
+.box.open{
+  background:#3a2815;
+  border-color:#8b7330;
+  box-shadow:
+    inset 0 0 0 2px #6b5330,
+    0 0 0 2px #ffd70080;
+}
+.box.open .box-inner{display:block;}
+.box.open .box-label{display:none;}
+
+/* FOUND state */
+.box.found{
+  background:#004a00;
+  border-color:#00cc00;
+  box-shadow:0 0 8px #00cc0060,inset 0 0 0 2px #007a00;
+}
+.box.found .box-inner{color:#a0ffa0;text-shadow:2px 2px #006a00;}
+
+/* FAIL state */
+.box.fail{
+  background:#4a0000;
+  border-color:#cc0000;
+  box-shadow:0 0 8px #cc000060,inset 0 0 0 2px #7a0000;
+}
+.box.fail .box-inner{color:#ff6060;text-shadow:2px 2px #6a0000;}
+
+/* Current prisoner highlight */
+.box.current-prisoner .box-label{
+  color:#ffd700;
+  background:#ffd70030;
+  padding:0 2px;
+}
+.box.current-target{
+  animation:pulse-glow .6s infinite alternate;
+}
+@keyframes pulse-glow{
+  0%{box-shadow:0 0 4px #ffd70040,inset 0 0 0 2px #6b5330;}
+  100%{box-shadow:0 0 12px #ffd700,inset 0 0 0 2px #ffd700;}
+}
+
+/* ===== INFO PANEL ===== */
+.info-panel{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px 12px;
+  padding:8px 10px;
+  background:#101038;
+  border:2px solid #383878;
+  margin-bottom:12px;
+  font-size:8px;
+  min-height:60px;
+  align-items:flex-start;
+}
+.info-panel .stat{display:flex;gap:4px;align-items:center;}
+.info-panel .stat-label{color:#8888cc;}
+.info-panel .stat-value{
+  color:#ffd700;
+  font-weight:bold;
+  min-width:24px;
+  text-align:right;
+}
+.info-panel .stat-value.green{color:#66ff66;}
+.info-panel .stat-value.red{color:#ff6666;}
+.chain-display{
+  width:100%;
+  margin-top:4px;
+  font-size:7px;
+  color:#aaaadd;
+  word-break:break-all;
+  line-height:1.8;
+}
+.chain-display .chain-label{color:#8888cc;margin-right:6px;}
+.chain-num{
+  display:inline-block;
+  background:#282870;
+  padding:0 5px;
+  margin:0 1px;
+  font-weight:bold;
+  color:#ffd700;
+}
+.chain-num.success{color:#66ff66;background:#004a00;}
+.chain-num.fail{color:#ff6666;background:#4a0000;}
+
+/* ===== RESULT SCREEN ===== */
+.result-overlay{
+  display:none;
+  position:absolute;
+  inset:0;
+  background:rgba(10,10,46,.92);
+  z-index:100;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.result-overlay.show{display:flex;}
+.result-overlay .result-title{
+  font-size:32px;
+  letter-spacing:2px;
+  margin-bottom:8px;
+}
+.result-overlay .result-title.success{color:#66ff66;text-shadow:0 0 20px #00cc00;}
+.result-overlay .result-title.fail{color:#ff6666;text-shadow:0 0 20px #cc0000;}
+.result-overlay .result-sub{
+  font-size:10px;
+  margin-bottom:14px;
+  color:#aaaadd;
+  line-height:1.6;
+}
+.result-overlay .result-stat{
+  font-size:9px;
+  color:#e8e0c8;
+  margin-bottom:18px;
+}
+.result-overlay .result-stat .big{font-size:22px;color:#ffd700;}
+.result-overlay .btn{margin-top:8px;}
+
+/* ===== MASS MODE ===== */
+.mass-panel{
+  display:none;
+  padding:10px;
+  background:#101038;
+  border:2px solid #383878;
+  margin-bottom:12px;
+}
+.mass-panel.show{display:block;}
+.mass-panel .mass-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+.mass-panel .mass-header .count{color:#ffd700;font-size:12px;}
+.mass-panel .mass-progress{
+  width:100%;
+  height:16px;
+  background:#202060;
+  border:2px solid #4848a0;
+  margin-bottom:6px;
+  overflow:hidden;
+}
+.mass-panel .mass-progress .fill{
+  height:100%;
+  background:#006a00;
+  width:0%;
+  transition:width .1s;
+}
+.mass-panel .mass-stats{
+  display:flex;
+  gap:14px;
+  font-size:8px;
+}
+.mass-panel .mass-stats .pct{color:#ffd700;font-size:12px;}
+.mass-panel .mass-stats .pct.green{color:#66ff66;}
+.mass-panel .mass-stats .pct.red{color:#ff6666;}
+
+/* ===== HISTOGRAM ===== */
+.histogram{display:none;margin-top:8px;}
+.histogram.show{display:block;}
+.histogram .bar-row{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  height:14px;
+  font-size:7px;
+  margin-bottom:2px;
+}
+.histogram .bar-row .bar-label{
+  width:28px;
+  text-align:right;
+  color:#8888cc;
+  flex-shrink:0;
+}
+.histogram .bar-row .bar{
+  height:12px;
+  background:#006a00;
+  min-width:2px;
+  transition:width .2s;
+}
+.histogram .bar-row .bar-count{
+  font-size:10px;
+  color:#aaaadd;
+  flex-shrink:0;
+  margin-left:4px;
+}
+
+/* ===== MODE TAB ===== */
+.mode-tabs{
+  display:flex;
+  gap:0;
+  justify-content:center;
+  margin-bottom:10px;
+}
+.mode-tab{
+  background:#202060;
+  color:#8888cc;
+  border:2px solid #383878;
+  font-family:inherit;
+  font-size:9px;
+  padding:6px 18px;
+  cursor:pointer;
+  text-transform:uppercase;
+  transition:background .1s;
+}
+.mode-tab:first-child{border-right-width:1px;}
+.mode-tab:last-child{border-left-width:1px;}
+.mode-tab.active{
+  background:#3838a0;
+  color:#ffd700;
+  border-color:#ffd700;
+  z-index:2;
+}
+.mode-tab:hover:not(.active){background:#303080;}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:640px){
+  .app{padding:12px;}
+  .title{font-size:16px;}
+  .grid{gap:2px;max-width:100%;}
+  .box{font-size:7px;border-width:2px;}
+  .box .box-inner{font-size:11px;}
+  .box .box-label{font-size:5px;}
+  .info-panel{font-size:7px;padding:6px;}
+  .result-overlay .result-title{font-size:18px;}
+  .config-bar{flex-direction:column;align-items:stretch;}
+  .control-bar .speed-group{margin-left:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- TITLE -->
+  <div class="title">100 ЗАКЛЮЧЁННЫХ</div>
+  <div class="subtitle">8-БИТНАЯ СИМУЛЯЦИЯ</div>
+
+  <!-- MODE TABS -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="animate" id="tabAnimate">ЗАПУСК</button>
+    <button class="mode-tab" data-mode="mass" id="tabMass">СЕРИЯ</button>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="config-bar">
+    <label>Стратегия:</label>
+    <select id="strategySelect">
+      <option value="chain">Цепочка (оптим.)</option>
+      <option value="random">Случайно (наив.)</option>
+    </select>
+    <label>Seed:</label>
+    <input class="seed-input" id="seedInput" type="text" placeholder="случайно" maxlength="20">
+    <button class="btn primary" id="btnStart">▶ СТАРТ</button>
+  </div>
+
+  <!-- CONTROL BAR -->
+  <div class="control-bar">
+    <button class="btn btn-sm" id="btnPause" disabled>⏸ ПАУЗА</button>
+    <button class="btn btn-sm" id="btnStep" disabled>⏭ ШАГ</button>
+    <button class="btn btn-sm danger" id="btnReset">✕ СБРОС</button>
+    <div class="speed-group">
+      <label>СКОРОСТЬ</label>
+      <input type="range" id="speedSlider" min="1" max="10" value="6">
+      <span id="speedLabel" style="color:#ffd700;font-size:12px;min-width:32px;text-align:right;">x1</span>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div class="grid-wrapper" style="position:relative;">
+    <div class="grid" id="grid"></div>
+    <!-- Result overlay -->
+    <div class="result-overlay" id="resultOverlay">
+      <div class="result-title" id="resultTitle">УСПЕХ</div>
+      <div class="result-sub" id="resultSub">Все нашли свои номера</div>
+      <div class="result-stat">
+        Нашли: <span class="big" id="resultFound">0</span> / 100
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        Нужны ВСЕ 100
+      </div>
+      <button class="btn primary" id="resultBtn">OK</button>
+    </div>
+  </div>
+
+  <!-- INFO PANEL -->
+  <div class="info-panel" id="infoPanel">
+    <div class="stat"><span class="stat-label">Закл.:</span><span class="stat-value" id="statPrisoner">—</span></div>
+    <div class="stat"><span class="stat-label">Попытки:</span><span class="stat-value" id="statAttempts">0</span><span class="stat-label">/50</span></div>
+    <div class="stat"><span class="stat-label">Нашли:</span><span class="stat-value green" id="statFound">0</span></div>
+    <div class="stat"><span class="stat-label">Нет:</span><span class="stat-value red" id="statMissed">0</span></div>
+    <div class="stat"><span class="stat-label">Цикл:</span><span class="stat-value" id="statCycle">—</span></div>
+    <div class="chain-display" id="chainDisplay">
+      <span class="chain-label">└ Цепочка:</span>
+      <span id="chainNums" style="color:#8888cc;">ожидание…</span>
+    </div>
+  </div>
+
+  <!-- MASS PANEL -->
+  <div class="mass-panel" id="massPanel">
+    <div class="mass-header">
+      <span class="count" id="massCount">0 / 0</span>
+      <button class="btn btn-sm danger" id="massStopBtn">■ СТОП</button>
+    </div>
+    <div class="mass-progress"><div class="fill" id="massFill"></div></div>
+    <div class="mass-stats">
+      <span>Успех: <span class="pct" id="massPct">0.0%</span></span>
+      <span>Прогоны: <span id="massDone">0</span></span>
+      <span>Ок: <span class="green" id="massOk">0</span></span>
+      <span>Провал: <span class="red" id="massFail">0</span></span>
+    </div>
+    <div class="histogram" id="histogram"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  100 PRISONERS — 8-BIT SIMULATION
+//  All logic in one file. Pure JS, no frameworks.
+// ============================================================
+
+// ---------- State ----------
+const state = {
+  // Grid state
+  boxes: [],          // Array[100] of { outerNum, innerNum }
+  // Simulation state
+  strategy: 'chain',  // 'chain' | 'random'
+  permutation: [],    // Array[100], index=box-0, value=number-inside
+  prisonersFound: [], // boolean[100]
+  currentPrisoner: -1,
+  attemptsLeft: 0,
+  foundCount: 0,
+  missedCount: 0,
+  currentChain: [],   // list of box indices for current prisoner
+  cycleLength: 0,
+  running: false,
+  paused: false,
+  done: false,
+  seed: null,
+  // Mass mode
+  massRunning: false,
+  massStop: false,
+  massTotal: 0,
+  massOk: 0,
+  massFail: 0,
+  massBatch: [],
+};
+
+// ---------- DOM refs ----------
+const $ = id => document.getElementById(id);
+const gridEl = $('grid');
+const stratSel = $('strategySelect');
+const seedInput = $('seedInput');
+const btnStart = $('btnStart');
+const btnPause = $('btnPause');
+const btnStep = $('btnStep');
+const btnReset = $('btnReset');
+const speedSlider = $('speedSlider');
+const speedLabel = $('speedLabel');
+const statPrisoner = $('statPrisoner');
+const statAttempts = $('statAttempts');
+const statFound = $('statFound');
+const statMissed = $('statMissed');
+const statCycle = $('statCycle');
+const chainNums = $('chainNums');
+const resultOverlay = $('resultOverlay');
+const resultTitle = $('resultTitle');
+const resultSub = $('resultSub');
+const resultFound = $('resultFound');
+const resultBtn = $('resultBtn');
+const massPanel = $('massPanel');
+const massCount = $('massCount');
+const massFill = $('massFill');
+const massPct = $('massPct');
+const massDone = $('massDone');
+const massOk = $('massOk');
+const massFail = $('massFail');
+const massStopBtn = $('massStopBtn');
+const histogram = $('histogram');
+const tabAnimate = $('tabAnimate');
+const tabMass = $('tabMass');
+
+// ---------- Speed ----------
+function speedToMs(val){
+  // 1→800ms, 6→120ms, 10→20ms (exponential-ish)
+  const map = [800,500,320,200,140,120,90,60,35,20];
+  return map[Math.min(val-1,9)];
+}
+speedSlider.addEventListener('input',()=>{
+  const v = parseInt(speedSlider.value);
+  speedLabel.textContent = 'x'+v;
+});
+
+// ---------- Seeded RNG ----------
+// Mulberry32
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function getRNG(seedStr){
+  if(!seedStr || seedStr.trim()==='') return Math.random;
+  let hash = 0;
+  for(let i=0;i<seedStr.length;i++){
+    const ch = seedStr.charCodeAt(i);
+    hash = ((hash<<5)-hash)+ch; hash|=0;
+  }
+  return mulberry32(hash);
+}
+
+// ---------- Permutation ----------
+function generatePermutation(seedStr){
+  const rng = getRNG(seedStr);
+  const arr = [];
+  for(let i=1;i<=100;i++) arr.push(i);
+  // Fisher-Yates
+  for(let i=99;i>0;i--){
+    const j = Math.floor(rng()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// ---------- Grid rendering ----------
+function buildGrid(){
+  gridEl.innerHTML = '';
+  state.boxes = [];
+  for(let i=0;i<100;i++){
+    const div = document.createElement('div');
+    div.className = 'box';
+    div.dataset.index = i;
+    const label = document.createElement('span');
+    label.className = 'box-label';
+    label.textContent = i+1;
+    div.appendChild(label);
+    const inner = document.createElement('span');
+    inner.className = 'box-inner';
+    div.appendChild(inner);
+    gridEl.appendChild(div);
+    state.boxes.push({ el:div, label, inner });
+  }
+}
+buildGrid();
+
+function updateGrid(perm, revealAll){
+  for(let i=0;i<100;i++){
+    const b = state.boxes[i];
+    b.el.className = 'box';
+    b.inner.textContent = perm ? perm[i] : '';
+    b.label.textContent = i+1;
+    if(revealAll && perm){
+      if(perm[i] === i+1) b.el.classList.add('found');
+      else b.el.classList.add('open');
+    }
+  }
+}
+
+function resetGridVisuals(){
+  for(let i=0;i<100;i++){
+    const b = state.boxes[i];
+    b.el.className = 'box';
+    b.el.classList.remove('open','found','fail','current-prisoner','current-target');
+    b.inner.textContent = '';
+    b.label.textContent = i+1;
+  }
+}
+
+function setBoxOpen(index){
+  const b = state.boxes[index];
+  if(!b) return;
+  b.el.className = 'box open';
+  b.inner.textContent = state.permutation[index];
+  b.label.textContent = '';
+}
+
+function setBoxPrisoner(index){
+  const b = state.boxes[index];
+  if(b) b.el.classList.add('current-prisoner');
+}
+
+function clearBoxPrisoner(index){
+  const b = state.boxes[index];
+  if(b) b.el.classList.remove('current-prisoner');
+}
+
+function focusBox(index){
+  const b = state.boxes[index];
+  if(b) b.el.classList.add('current-target');
+}
+
+function unfocusBox(index){
+  const b = state.boxes[index];
+  if(b) b.el.classList.remove('current-target');
+}
+
+// ---------- Info panel ----------
+function updateInfo(prisoner, attemptsLeft, found, missed, chainArr, cycleLen){
+  statPrisoner.textContent = prisoner >= 0 ? (prisoner+1) : '—';
+  statAttempts.textContent = 50 - attemptsLeft;
+  statFound.textContent = found;
+  statMissed.textContent = missed;
+  statCycle.textContent = cycleLen >= 0 ? cycleLen : '—';
+
+  if(chainArr && chainArr.length){
+    let html = '';
+    for(const c of chainArr){
+      const num = state.permutation[c];
+      const isFound = num === (state.currentPrisoner+1);
+      html += `<span class="chain-num ${isFound?'success':'fail'}">${num}</span>`;
+    }
+    chainNums.innerHTML = html;
+  } else {
+    chainNums.textContent = (prisoner >= 0 && attemptsLeft < 50) ? 'открытие...' : 'ожидание...';
+  }
+}
+
+// ---------- Simulation step ----------
+let stepTimer = null;
+
+function clearStepTimer(){
+  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
+}
+
+// Start a prisoner's attempt
+function startPrisoner(prisonerIdx){
+  state.currentPrisoner = prisonerIdx;
+  state.attemptsLeft = 50;
+  state.currentChain = [];
+  state.cycleLength = -1;
+
+  // Highlight prisoner's outer box
+  setBoxPrisoner(prisonerIdx);
+
+  updateInfo(prisonerIdx, 50, state.foundCount, state.missedCount, [], -1);
+  takeTurn();
+}
+
+// One turn (open one box)
+function takeTurn(){
+  if(state.done || !state.running) return;
+  const p = state.currentPrisoner;
+  if(p < 0 || p >= 100) return;
+  if(state.attemptsLeft <= 0){
+    finishPrisoner(false);
+    return;
+  }
+
+  // Determine next box to open
+  let boxIdx = -1;
+  const perm = state.permutation;
+
+  if(state.strategy === 'chain'){
+    if(state.currentChain.length === 0){
+      boxIdx = p;  // start at own number
+    } else {
+      const lastVal = perm[state.currentChain[state.currentChain.length-1]];
+      boxIdx = lastVal - 1;
+    }
+  } else {
+    // random: pick a random unopened box this prisoner hasn't opened
+    const openedSet = new Set(state.currentChain);
+    const candidates = [];
+    for(let i=0;i<100;i++){
+      if(!openedSet.has(i)) candidates.push(i);
+    }
+    if(candidates.length === 0){
+      finishPrisoner(false);
+      return;
+    }
+    // Fisher-Yates shuffle on candidates, pick first
+    for(let i=candidates.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [candidates[i],candidates[j]] = [candidates[j],candidates[i]];
+    }
+    boxIdx = candidates[0];
+  }
+
+  if(boxIdx < 0 || boxIdx >= 100){
+    finishPrisoner(false);
+    return;
+  }
+
+  state.attemptsLeft--;
+  state.currentChain.push(boxIdx);
+
+  // Check if prisoner found own number
+  const val = perm[boxIdx];
+  const found = (val === p+1);
+
+  // Render
+  unfocusBox(state.currentChain.length > 1 ? state.currentChain[state.currentChain.length-2] : -1);
+  focusBox(boxIdx);
+  setBoxOpen(boxIdx);
+
+  // Track cycle length
+  state.cycleLength = state.currentChain.length;
+
+  updateInfo(p, state.attemptsLeft, state.foundCount, state.missedCount, state.currentChain, state.cycleLength);
+
+  if(found){
+    finishPrisoner(true);
+  } else if(state.attemptsLeft <= 0){
+    finishPrisoner(false);
+  } else if(state.strategy === 'chain'){
+    // Detect cycle: if the next box index has already been visited this turn
+    const nextIdx = perm[boxIdx] - 1;
+    if(nextIdx < 0 || nextIdx >= 100 || state.currentChain.includes(nextIdx)){
+      // Cycle detected without finding our number — fail this prisoner
+      finishPrisoner(false);
+    } else {
+      scheduleNext();
+    }
+  } else {
+    scheduleNext();
+  }
+}
+
+function scheduleNext(){
+  if(state.done || !state.running) return;
+  if(state.paused) return;
+  const ms = speedToMs(parseInt(speedSlider.value));
+  stepTimer = setTimeout(takeTurn, ms);
+}
+
+function finishPrisoner(found){
+  const p = state.currentPrisoner;
+  // Clear highlights
+  for(const bi of state.currentChain) unfocusBox(bi);
+  clearBoxPrisoner(p);
+
+  // Per TASK_SPEC:
+  //   - If prisoner found his number → green mark on that box
+  //   - If prisoner did NOT find his number (cycle/out of attempts) → red marks on all opened boxes
+  //   - First failure → execution of all prisoners, simulation ends immediately
+  for(const bi of state.currentChain){
+    const b = state.boxes[bi];
+    if(!b) continue;
+    if(state.permutation[bi] === p+1){
+      b.el.classList.add('found');
+    } else if(!found){
+      b.el.classList.add('fail');
+    }
+  }
+
+  if(found){
+    state.foundCount++;
+    state.prisonersFound[p] = true;
+  } else {
+    state.missedCount++;
+  }
+
+  updateInfo(p, 0, state.foundCount, state.missedCount, state.currentChain, state.cycleLength);
+
+  // TASK_SPEC: first failure → no sense to continue, execute all
+  if(!found){
+    endSimulation();
+    return;
+  }
+
+  // Next prisoner or done
+  if(p >= 99 || (p+1) >= 100){
+    endSimulation();
+    return;
+  }
+
+  // Short delay then next prisoner
+  clearStepTimer();
+  if(state.done) return;
+  const ms = Math.max(80, speedToMs(parseInt(speedSlider.value))*0.6);
+  stepTimer = setTimeout(() => {
+    if(!state.done && state.running) startPrisoner(p+1);
+  }, ms);
+}
+
+// ---------- End ----------
+function endSimulation(){
+  state.done = true;
+  state.running = false;
+  state.paused = false;
+  clearStepTimer();
+  btnStart.disabled = false;
+  btnPause.disabled = true;
+  btnStep.disabled = true;
+
+  const success = state.foundCount >= 51;
+  resultOverlay.classList.add('show');
+  resultTitle.textContent = success ? 'УСПЕХ' : 'ПРОВАЛ';
+  resultTitle.className = 'result-title '+(success?'success':'fail');
+  resultSub.textContent = success
+    ? 'Заключённые свободны!'
+    : 'Заключённые остаются в тюрьме...';
+  resultFound.textContent = state.foundCount;
+}
+
+// ---------- Start / Reset ----------
+function startSimulation(){
+  clearStepTimer();
+  resultOverlay.classList.remove('show');
+
+  state.strategy = stratSel.value;
+  state.seed = seedInput.value.trim() || null;
+  state.permutation = generatePermutation(state.seed);
+  state.prisonersFound = new Array(100).fill(false);
+  state.foundCount = 0;
+  state.missedCount = 0;
+  state.running = true;
+  state.paused = false;
+  state.done = false;
+  state.currentPrisoner = -1;
+
+  // Reset grid
+  resetGridVisuals();
+  // Show numbers inside (hidden) but not revealed
+  for(let i=0;i<100;i++){
+    state.boxes[i].inner.textContent = state.permutation[i];
+  }
+
+  btnStart.disabled = true;
+  btnPause.disabled = false;
+  btnStep.disabled = false;
+  btnPause.textContent = '⏸ ПАУЗА';
+
+  updateInfo(-1,0,0,0,[],-1);
+  chainNums.textContent = 'запуск...';
+
+  // Start first prisoner
+  setTimeout(() => {
+    if(state.running) startPrisoner(0);
+  }, 200);
+}
+
+function resetSimulation(){
+  clearStepTimer();
+  resultOverlay.classList.remove('show');
+  state.running = false;
+  state.paused = false;
+  state.done = false;
+  state.currentPrisoner = -1;
+  state.foundCount = 0;
+  state.missedCount = 0;
+  state.prisonersFound = new Array(100).fill(false);
+  btnStart.disabled = false;
+  btnPause.disabled = true;
+  btnStep.disabled = true;
+  btnPause.textContent = '⏸ ПАУЗА';
+  // Initial state per TASK_SPEC: grid clean, info empty, Start ready, Pause/Step locked
+  resetGridVisuals();
+  updateInfo(-1,0,0,0,[],-1);
+  chainNums.textContent = 'ожидание...';
+}
+
+// ---------- Pause / Step ----------
+function togglePause(){
+  if(!state.running || state.done) return;
+  state.paused = !state.paused;
+  btnPause.textContent = state.paused ? '▶ ПУСК' : '⏸ ПАУЗА';
+  if(!state.paused){
+    // Resume: schedule next step
+    scheduleNext();
+  } else {
+    clearStepTimer();
+  }
+}
+
+function doStep(){
+  if(!state.running || state.done) return;
+  if(!state.paused){
+    // Auto-pause on step
+    state.paused = true;
+    btnPause.textContent = '▶ ПУСК';
+  }
+  // If no current prisoner, start one
+  if(state.currentPrisoner < 0 || state.attemptsLeft <= 0){
+    // Find next prisoner who hasn't gone
+    let next = state.currentPrisoner + 1;
+    while(next < 100 && state.prisonersFound[next]) next++;
+    if(next >= 100){ endSimulation(); return; }
+    startPrisoner(next);
+  } else {
+    takeTurn();
+  }
+}
+
+// ---------- Result dismiss ----------
+resultBtn.addEventListener('click', ()=>{
+  resultOverlay.classList.remove('show');
+});
+
+// ---------- Event listeners ----------
+btnStart.addEventListener('click', (e)=>{
+  if(tabMass.classList.contains('active')){
+    runMassSimulations(1000);
+  } else {
+    startSimulation();
+  }
+});
+btnReset.addEventListener('click', resetSimulation);
+btnPause.addEventListener('click', togglePause);
+btnStep.addEventListener('click', doStep);
+
+stratSel.addEventListener('change', ()=>{});
+
+seedInput.addEventListener('keydown', e => {
+  if(e.key === 'Enter'){
+    if(tabMass.classList.contains('active')){
+      runMassSimulations(1000);
+    } else {
+      startSimulation();
+    }
+  }
+});
+
+// ---------- Mass run mode ----------
+
+async function runMassSimulations(count){
+  if(state.massRunning) return;
+  state.massRunning = true;
+  state.massStop = false;
+  state.massTotal = 0;
+  state.massOk = 0;
+  state.massFail = 0;
+  state.massBatch = [];
+  massStopBtn.textContent = '■ СТОП';
+  massStopBtn.disabled = false;
+  massPanel.classList.add('show');
+
+  const strat = stratSel.value;
+  const seedBase = seedInput.value.trim() || null;
+
+  // Clear histogram
+  histogram.classList.remove('show');
+  histogram.innerHTML = '';
+
+  const batchSize = 50;
+  let done = 0;
+  const total = count;
+  // For histogram: bucket foundCounts
+  const buckets = new Array(101).fill(0);
+
+  while(done < total && !state.massStop){
+    const batchEnd = Math.min(done + batchSize, total);
+    for(let i=done; i<batchEnd; i++){
+      const perm = generatePermutation(seedBase ? seedBase+'_'+i : null);
+      const result = simulateSingle(perm, strat);
+      state.massTotal++;
+      if(result >= 51){
+        state.massOk++;
+      } else {
+        state.massFail++;
+      }
+      state.massBatch.push(result);
+      buckets[result]++;
+    }
+    done = batchEnd;
+    updateMassUI(done, total, buckets);
+    // Yield to UI
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  state.massRunning = false;
+  massStopBtn.disabled = true;
+
+  // Draw final histogram
+  drawHistogram(buckets, total);
+
+  if(state.massStop){
+    massStopBtn.textContent = 'ОСТАНОВЛЕНО';
+  } else {
+    massStopBtn.textContent = '✓ ГОТОВО';
+  }
+}
+
+function simulateSingle(perm, strat){
+  const found = new Array(100).fill(false);
+  let foundCount = 0;
+
+  for(let p=0; p<100; p++){
+    const limit = 50;
+    let attempts = 0;
+    let boxIdx;
+    const opened = new Set();
+
+    if(strat === 'chain'){
+      boxIdx = p;
+      opened.clear();
+      let prisonerFound = false;
+      while(attempts < limit){
+        const val = perm[boxIdx];
+        attempts++;
+        if(val === p+1){
+          foundCount++;
+          prisonerFound = true;
+          break;
+        }
+        // Detect cycle
+        const nextIdx = val - 1;
+        if(opened.has(nextIdx)) break;
+        opened.add(boxIdx);
+        boxIdx = nextIdx;
+      }
+      // First failure → stop this run immediately (TASK_SPEC)
+      if(!prisonerFound) return foundCount;
+    } else {
+      // Random — pick 50 distinct random boxes
+      // Partial Fisher-Yates shuffle: start with indices [0..99], swap first 50
+      const indices = [];
+      for(let i=0;i<100;i++) indices.push(i);
+      let found = false;
+      for(let i=0;i<limit;i++){
+        const j = i + Math.floor(Math.random()*(100-i));
+        [indices[i],indices[j]] = [indices[j],indices[i]];
+        boxIdx = indices[i];
+        if(perm[boxIdx] === p+1){
+          foundCount++;
+          found = true;
+          break;
+        }
+      }
+      // First failure → stop this run (TASK_SPEC)
+      if(!found) return foundCount;
+    }
+  }
+  return foundCount;
+}
+
+function updateMassUI(done, total, buckets){
+  massCount.textContent = done + ' / ' + total;
+  massFill.style.width = (done/total*100)+'%';
+  const pct = (state.massOk/Math.max(1,done)*100);
+  massPct.textContent = pct.toFixed(1)+'%';
+  massDone.textContent = done;
+  massOk.textContent = state.massOk;
+  massFail.textContent = state.massFail;
+}
+
+function drawHistogram(buckets, total, maxBars=20){
+  histogram.classList.add('show');
+  histogram.innerHTML = '';
+  // Find non-zero range
+  let minBin=100, maxBin=0;
+  for(let i=0;i<=100;i++){
+    if(buckets[i] > 0){
+      minBin = Math.min(minBin, i);
+      maxBin = Math.max(maxBin, i);
+    }
+  }
+  // Zoom into relevant range
+  minBin = Math.max(0, minBin - 2);
+  maxBin = Math.min(100, maxBin + 2);
+
+  // If too many bars, bin them
+  const span = maxBin - minBin;
+  if(span <= maxBars || total < 50){
+    for(let i=minBin; i<=maxBin; i++){
+      addHistBar(i, buckets[i], Math.max(buckets[i], 0), total);
+    }
+  } else {
+    // Bucket into ~20 groups
+    const binSize = Math.ceil(span / maxBars);
+    for(let g=0; g<=maxBars; g++){
+      const start = minBin + g*binSize;
+      const end = Math.min(start+binSize-1, maxBin);
+      let sum = 0;
+      for(let j=start; j<=end; j++) sum += buckets[j]||0;
+      const label = start===end ? start : start+'-'+end;
+      addHistBar(label, sum, sum, total);
+      if(end >= maxBin) break;
+    }
+  }
+}
+
+function addHistBar(label, count, maxCount, total){
+  if(count === 0) return;
+  const row = document.createElement('div');
+  row.className = 'bar-row';
+  const lbl = document.createElement('span');
+  lbl.className = 'bar-label';
+  lbl.textContent = label;
+  row.appendChild(lbl);
+  const bar = document.createElement('div');
+  bar.className = 'bar';
+  const pct = maxCount > 0 ? (count / Math.max(1,total) * 100) : 0;
+  bar.style.width = Math.max(4, pct * 4) + 'px';
+  // Color: green if ≥51
+  const labelNum = parseInt(label);
+  bar.style.background = (labelNum >= 51 || label === '≥51') ? '#006a00' : '#6a0000';
+  row.appendChild(bar);
+  const cnt = document.createElement('span');
+  cnt.className = 'bar-count';
+  cnt.textContent = count;
+  row.appendChild(cnt);
+  histogram.appendChild(row);
+}
+
+massStopBtn.addEventListener('click', ()=>{
+  if(state.massRunning){
+    state.massStop = true;
+    massStopBtn.textContent = 'СТОП...';
+  }
+});
+
+// ---------- Mode tabs ----------
+function switchMode(mode){
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
+  if(mode === 'animate'){
+    tabAnimate.classList.add('active');
+    massPanel.classList.remove('show');
+    document.querySelector('.grid-wrapper').style.display = 'block';
+    document.querySelector('.info-panel').style.display = 'flex';
+  } else {
+    tabMass.classList.add('active');
+    massPanel.classList.add('show');
+    document.querySelector('.grid-wrapper').style.display = 'none';
+    document.querySelector('.info-panel').style.display = 'none';
+    resultOverlay.classList.remove('show');
+    resetSimulation();
+  }
+}
+
+tabAnimate.addEventListener('click', ()=>switchMode('animate'));
+tabMass.addEventListener('click', ()=>switchMode('mass'));
+
+
+// ---------- Keyboard shortcuts (klf) ----------
+document.addEventListener('keydown', e => {
+  // Only when not typing in input
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+  switch(e.key.toLowerCase()){
+    case 'k':
+      e.preventDefault();
+      if(tabMass.classList.contains('active')){
+        switchMode('animate');
+      } else {
+        if(!state.running || state.done) startSimulation();
+      }
+      break;
+    case 'l':
+      e.preventDefault();
+      togglePause();
+      break;
+    case 'f':
+      e.preventDefault();
+      doStep();
+      break;
+    case ' ':
+      e.preventDefault();
+      togglePause();
+      break;
+  }
+});
+
+// ---------- Init ----------
+resetSimulation();
+console.log('100 Заключённых — 8-бит симуляция загружена');
+console.log('Клавиши: K=Старт, L=Пауза, F=Шаг');
+</script>
+</body>
+</html>
