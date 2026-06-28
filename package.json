@@ -1,0 +1,8 @@
+{
+  "name": "100prisoners",
+  "version": "1.0.0",
+  "description": "100 prisoners problem — 8-bit browser simulation",
+  "scripts": {
+    "start": "npx serve . -l $PORT --cors --no-clipboard"
+  }
+}
